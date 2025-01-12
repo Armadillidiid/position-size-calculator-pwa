@@ -17,6 +17,7 @@ const compat = new FlatCompat({
 
 export default [
   {
+    files: ["**/*.ts", "**/*.tsx"],
     ignores: ["**/dist", "**/.eslintrc.cjs"],
   },
   ...fixupConfigRules(
