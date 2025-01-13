@@ -1,1 +1,2 @@
 export const ACCOUNT_CURRENCY_LOCAL_STORAGE_KEY = 'accountCurrency';
+export const ACCOUNT_CURRENCY_LOCAL_STORAGE_DEFAULT_VALUE = 'USD';

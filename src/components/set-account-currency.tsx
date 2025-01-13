@@ -36,12 +36,7 @@ const SetAccountCurrency = ({ isOpen, setIsOpen }: SetAccountCurrencyProps) => {
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <AlertDialogTrigger>
-        <Button className="top-4 left-4 absolute" variant={"outline"}>
-          <Icons.DollarSign className="size-4" />
-          Currency
-        </Button>
-      </AlertDialogTrigger>
+      {/* <AlertDialogTrigger></AlertDialogTrigger> */}
       <AlertDialogContent className="max-w-[95%] sm:max-w-lg rounded">
         <AlertDialogHeader>
           <AlertDialogTitle>Set Account Currency</AlertDialogTitle>
