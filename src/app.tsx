@@ -1,17 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { currencyPairs } from "@/data/currencies";
-import { CalculatorState } from "../types/calculator";
 import PWABadge from "./PWABadge.tsx";
 import {
   Form,
@@ -27,54 +17,136 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CurrencyInput } from "./components/currency-input";
 import { formatCurrency } from "./utils/format-currency.ts";
 import SetAccountCurrency from "./components/set-account-currency.tsx";
+import { ACCOUNT_CURRENCY_LOCAL_STORAGE_KEY } from "./constants/local-storage.ts";
+import { useLocalStorage } from "./utils/use-local-storage/use-local-storage.tsx";
+import { CurrencyPairCombobox } from "./components/currency-pair-combobox.tsx";
+import { getExchangeRateQueryFn } from "./hooks/queries/get-exchange-rate/index.ts";
+import { numberRange } from "./utils/number-ranage.ts";
+import { STANDARD_LOT_SIZE, MINI_LOT_SIZE } from "./constants/unit.ts";
+import { calculatePositionSize } from "./utils/calculate-position-size.ts";
 
 const formSchema = z.object({
-  accountBalance: z.string(),
-  riskPercentage: z.string(),
-  stopLoss: z.number(),
-  currencyPair: z.string(),
-  positionSize: z.string(),
-  riskAmount: z.string(),
+  accountBalance: z
+    .string()
+    .trim()
+    .min(1, { message: "Account balance is required." }),
+  riskPercentage: z
+    .string()
+    .trim()
+    .min(1, { message: "Risk percentage is required." }),
+  stopLoss: z.string().trim().min(1, { message: "Stop loss is required." }),
+  currencyPair: z
+    .string()
+    .trim()
+    .min(1, { message: "Currency pair is required." }),
 });
 type FormSchema = z.infer<typeof formSchema>;
+type Result = {
+  riskAmount: number;
+  positionSize: {
+    units: number;
+    standardLots: number;
+    miniLots: number;
+  };
+  stopLoss: number;
+};
 
 export default function App() {
   const form = useForm<FormSchema>({
     defaultValues: {
       accountBalance: "",
       riskPercentage: "",
-      stopLoss: 20,
+      stopLoss: "",
       currencyPair: "EUR/USD",
-      positionSize: "",
-      riskAmount: "",
     },
     resolver: zodResolver(formSchema),
   });
 
-  const [state, setState] = useState<CalculatorState>({
-    accountBalance: 10000,
-    riskPercentage: 1,
-    stopLoss: 20,
-    currencyPair: "EUR/USD",
-    positionSize: 0,
-    riskAmount: 0,
+  const [currencyDialog, setCurrencyDialog] = useState(false);
+  const [accountCurrency] = useLocalStorage<string | undefined>({
+    key: ACCOUNT_CURRENCY_LOCAL_STORAGE_KEY,
   });
+  const [result, setResult] = useState<Result[]>([]);
+  const mainResult = useMemo(() => {
+    const r = result.filter(
+      (res) => res.stopLoss === Number(form.getValues().stopLoss),
+    )[0];
+    return r;
+  }, [result]);
 
-  const onSubmit: SubmitHandler<FormSchema> = async (data) => {
-    const riskAmount = (state.accountBalance * state.riskPercentage) / 100;
-    const pipValue = 0.0001; // Simplified pip value calculation
-    const positionSize = riskAmount / (state.stopLoss * pipValue);
+  const onSubmit: SubmitHandler<FormSchema> = async ({
+    accountBalance,
+    currencyPair,
+    riskPercentage,
+    stopLoss,
+  }) => {
+    try {
+      if (!accountCurrency) return;
 
-    setState((prev) => ({
-      ...prev,
-      riskAmount,
-      positionSize: Number(positionSize.toFixed(2)),
-    }));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_baseCurrency, quoteCurrency] = currencyPair.split("/");
+      const riskAmount =
+        (Number(accountBalance) * Number(riskPercentage)) / 100;
+
+      let exchangeRate = 1; // Default to 1 if no conversion needed
+
+      // Fetch exchange rate if account currency != quote currency
+      if (accountCurrency !== quoteCurrency) {
+        const res = await getExchangeRateQueryFn({
+          fromCurrency: accountCurrency,
+          toCurrency: quoteCurrency,
+        });
+        exchangeRate = Number(
+          res["Realtime Currency Exchange Rate"]["5. Exchange Rate"],
+        );
+      }
+
+      // Determine pip size (JPY pairs have different pip sizes)
+      const pipSize = quoteCurrency === "JPY" ? 0.01 : 0.0001;
+
+      // Pip value calculation (in standard lots)
+      const pipValue = pipSize / exchangeRate;
+
+      // Iterate through stop-loss range for calculations
+      const stopLossRange = numberRange(
+        Number(stopLoss),
+        Number(stopLoss) * 0.1,
+        3,
+      );
+
+      setResult([]);
+      for (const stopLoss of stopLossRange) {
+        const positionSizeUnits = calculatePositionSize(
+          riskAmount,
+          stopLoss,
+          pipValue,
+        );
+
+        setResult((prev) => [
+          ...prev,
+          {
+            riskAmount,
+            positionSize: {
+              units: positionSizeUnits,
+              standardLots: positionSizeUnits / STANDARD_LOT_SIZE,
+              miniLots: positionSizeUnits / MINI_LOT_SIZE,
+            },
+            stopLoss,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error calculating position:", error);
+      return;
+    }
   };
 
   return (
     <div className="flex flex-col gap-8">
-      <SetAccountCurrency />
+      <SetAccountCurrency
+        isOpen={currencyDialog}
+        setIsOpen={setCurrencyDialog}
+      />
       <img
         src="/logo.jpeg"
         alt="logo"
@@ -102,12 +174,13 @@ export default function App() {
                     <FormControl>
                       <CurrencyInput
                         formatter={(value) => {
-                          return formatCurrency(value, "NGN", false).slice(1);
+                          return formatCurrency(value, "NGN", true).slice(1);
                         }}
                         value={String(value)}
                         placeholder="1,000,000.00"
                         onChange={onChange}
-                        currency="EUR"
+                        onCurrencyClick={() => setCurrencyDialog(true)}
+                        currency={accountCurrency ?? "USD"}
                         {...field}
                       />
                     </FormControl>
@@ -123,40 +196,28 @@ export default function App() {
                   <FormItem>
                     <FormLabel>Risk Percentage</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        {...field}
-                      />
+                      <Input type="number" placeholder="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="space-y-2">
-                <Label htmlFor="pair">Currency Pair</Label>
-                <Select
-                  value={state.currencyPair}
-                  onValueChange={(value) =>
-                    setState((prev) => ({
-                      ...prev,
-                      currencyPair: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency pair" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencyPairs.map((pair) => (
-                      <SelectItem key={pair} value={pair}>
-                        {pair}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormField
+                control={form.control}
+                name="currencyPair"
+                render={({ field: stateField }) => (
+                  <FormItem>
+                    <FormLabel>Currency Pair</FormLabel>
+                    <CurrencyPairCombobox
+                      name="currencyPair"
+                      form={form}
+                      value={stateField.value}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -165,11 +226,7 @@ export default function App() {
                   <FormItem>
                     <FormLabel>Stop Loss</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        {...field}
-                      />
+                      <Input type="number" placeholder="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -180,22 +237,22 @@ export default function App() {
                 Calculate
               </Button>
 
-              {state.positionSize > 0 && (
-                <div className="pt-4 space-y-2">
-                  <div className="flex justify-between">
-                    <span>Risk Amount:</span>
-                    <span className="font-bold">
-                      ${state.riskAmount.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Position Size:</span>
-                    <span className="font-bold">
-                      {state.positionSize.toFixed(2)} lots
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* {state.positionSize > 0 && ( */}
+              {/*   <div className="pt-4 space-y-2"> */}
+              {/*     <div className="flex justify-between"> */}
+              {/*       <span>Risk Amount:</span> */}
+              {/*       <span className="font-bold"> */}
+              {/*         ${state.riskAmount.toFixed(2)} */}
+              {/*       </span> */}
+              {/*     </div> */}
+              {/*     <div className="flex justify-between"> */}
+              {/*       <span>Position Size:</span> */}
+              {/*       <span className="font-bold"> */}
+              {/*         {state.positionSize.toFixed(2)} lots */}
+              {/*       </span> */}
+              {/*     </div> */}
+              {/*   </div> */}
+              {/* )} */}
             </CardContent>
           </form>
         </Form>

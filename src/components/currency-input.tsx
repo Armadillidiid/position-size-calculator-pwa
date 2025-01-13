@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { ComponentProps, useEffect, useState } from "react";
 import { RefCallBack } from "react-hook-form";
+import { Button } from "./ui/button";
 
 type CurrencyInputProps = ComponentProps<"input"> & {
   onChange: (...event: unknown[]) => void;
@@ -13,6 +14,7 @@ type CurrencyInputProps = ComponentProps<"input"> & {
   ref: RefCallBack;
   formatter: (value: string) => string;
   currency: string;
+  onCurrencyClick: () => void;
 };
 
 export const CurrencyInput = ({
@@ -21,6 +23,7 @@ export const CurrencyInput = ({
   onBlur,
   formatter,
   currency,
+  onCurrencyClick,
   ...props
 }: CurrencyInputProps) => {
   const [rawValue, setRawValue] = useState(value);
@@ -35,6 +38,7 @@ export const CurrencyInput = ({
       <Input
         className="z-10 rounded-r-none border-r-0 focus-visible:z-10"
         placeholder="1,000,000.00"
+        inputMode="numeric"
         value={rawValue}
         onChange={({ currentTarget: { value } }) => {
           const cleanedValue = value.replace(/[^0-9.]/g, "");
@@ -54,9 +58,14 @@ export const CurrencyInput = ({
         }}
         {...props}
       />
-      <span className="inline-flex items-center rounded-e-lg border border-input bg-background px-3 text-sm text-muted-foreground">
+      <Button
+        type="button"
+        variant={"outline"}
+        className="inline-flex items-center rounded-s-none rounded-e-lg border border-input bg-background px-3 text-sm text-muted-foreground"
+        onClick={onCurrencyClick}
+      >
         {currency}
-      </span>
+      </Button>
     </div>
   );
 };

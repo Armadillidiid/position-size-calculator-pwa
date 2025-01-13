@@ -9,7 +9,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Toggle } from "./ui/toggle";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertDialogHeader, AlertDialogFooter } from "./ui/alert-dialog";
 import { Icons } from "./ui/icons";
 import { Button } from "./ui/button";
@@ -17,7 +17,12 @@ import { popularCurrencies } from "@/data/currencies";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_CURRENCY_LOCAL_STORAGE_KEY } from "@/constants/local-storage";
 
-const SetAccountCurrency = () => {
+type SetAccountCurrencyProps = {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+};
+
+const SetAccountCurrency = ({ isOpen, setIsOpen }: SetAccountCurrencyProps) => {
   const [accountCurrency, setAccountCurrency] = useLocalStorage<
     string | undefined
   >({
@@ -30,7 +35,7 @@ const SetAccountCurrency = () => {
   }, [accountCurrency]);
 
   return (
-    <AlertDialog>
+    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger>
         <Button className="top-4 left-4 absolute" variant={"outline"}>
           <Icons.DollarSign className="size-4" />

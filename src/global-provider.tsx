@@ -1,4 +1,4 @@
-import React, { PropsWithChildren } from "react";
+import { PropsWithChildren } from "react";
 import { getQueryClient } from "./lib/tanstack-query";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
