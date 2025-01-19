@@ -4,6 +4,7 @@ import * as React from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { copyToClipboard } from "../utils/copy";
+import { cn } from "@/lib/utils";
 
 interface CopyButtonProps {
   value: string;
@@ -12,26 +13,28 @@ interface CopyButtonProps {
 export function CopyButton({ value }: CopyButtonProps) {
   const [copied, setCopied] = React.useState(false);
 
-  React.useEffect(() => {
-    if (copied) {
-      const timeout = setTimeout(() => setCopied(false), 2000);
-      return () => clearTimeout(timeout);
+  const handleCopy = async () => {
+    const success = await copyToClipboard(value);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-  }, [copied]);
+  };
 
   return (
     <Button
       size="icon"
       variant="ghost"
-      className="h-6 w-6"
-      onClick={async () => {
-        const success = await copyToClipboard(value);
-        if (success) {
-          setCopied(true);
-        }
-      }}
+      className="h-6 w-6 relative"
+      onClick={handleCopy}
     >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      <Copy className={cn("h-3 w-3 transition-all", copied && "scale-0")} />
+      <Check
+        className={cn(
+          "h-3 w-3 text-green-600 absolute transition-all",
+          copied ? "scale-100" : "scale-0",
+        )}
+      />
       <span className="sr-only">Copy value</span>
     </Button>
   );

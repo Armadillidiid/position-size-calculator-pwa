@@ -1,4 +1,3 @@
-import { Result } from "@/app";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +14,7 @@ import {
   TableBody,
   TableCell,
 } from "./ui/table";
+import { Result } from "./calculator";
 
 type StopLossRangeProps = {
   result: Result[];
