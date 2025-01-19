@@ -1,7 +1,6 @@
 import { useLocalStorage } from "@/utils/use-local-storage/use-local-storage";
 import {
   AlertDialog,
-  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogTitle,
   AlertDialogDescription,
@@ -11,8 +10,6 @@ import {
 import { Toggle } from "./ui/toggle";
 import { useEffect, useState } from "react";
 import { AlertDialogHeader, AlertDialogFooter } from "./ui/alert-dialog";
-import { Icons } from "./ui/icons";
-import { Button } from "./ui/button";
 import { popularCurrencies } from "@/data/currencies";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_CURRENCY_LOCAL_STORAGE_KEY } from "@/constants/local-storage";

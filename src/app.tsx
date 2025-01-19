@@ -1,7 +1,7 @@
-import { ElementRef, useMemo, useRef, useState } from "react";
+import { type ComponentRef, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import PWABadge from "./PWABadge.tsx";
 import {
   Form,
@@ -29,9 +29,10 @@ import { STANDARD_LOT_SIZE, MINI_LOT_SIZE } from "./constants/unit.ts";
 import { calculatePositionSize } from "./utils/calculate-position-size.ts";
 import { Label } from "@radix-ui/react-label";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "./lib/utils.ts";
 import { formatNumber } from "./utils/format-number.ts";
 import { Icons } from "./components/ui/icons.tsx";
+import { StopLossRange } from "./components/stop-loss-range.tsx";
+import { CopyButton } from "./components/copy-button.tsx";
 
 const formSchema = z.object({
   accountBalance: z
@@ -49,7 +50,7 @@ const formSchema = z.object({
     .min(1, { message: "Currency pair is required." }),
 });
 type FormSchema = z.infer<typeof formSchema>;
-type Result = {
+export type Result = {
   riskAmount: number;
   positionSize: {
     units: number;
@@ -82,7 +83,7 @@ export default function App() {
     )[0];
     return r;
   }, [result]);
-  const resultRef = useRef<ElementRef<"div">>(null);
+  const resultRef = useRef<ComponentRef<"div">>(null);
 
   const onSubmit: SubmitHandler<FormSchema> = async ({
     accountBalance,
@@ -124,8 +125,8 @@ export default function App() {
       // Iterate through stop-loss range for calculations
       const stopLossRange = numberRange(
         Number(stopLoss),
-        Number(stopLoss) * 0.1,
-        3,
+        Number(stopLoss) * 0.01,
+        4,
       );
 
       setResult([]);
@@ -268,40 +269,60 @@ export default function App() {
             <div className="space-y-4 text-xs sm:text-sm">
               <div className="grid gap-2">
                 <Label>Amount at Risk</Label>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {formatNumber(mainResult?.riskAmount ?? 0)} {accountCurrency}
+                <div className="flex items-center gap-2">
+                  <div className="text-xl sm:text-2xl font-bold">
+                    {formatNumber(mainResult?.riskAmount ?? 0)}{" "}
+                    {accountCurrency}
+                  </div>
+                  <CopyButton
+                    value={`${formatNumber(mainResult?.riskAmount ?? 0)}`}
+                  />
                 </div>
               </div>
 
               <div className="grid gap-2">
                 <Label>Standard Lots</Label>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {formatNumber(mainResult?.positionSize.standardLots ?? 0)}
+                <div className="flex items-center gap-2">
+                  <div className="text-xl sm:text-2xl font-bold">
+                    {formatNumber(mainResult?.positionSize.standardLots ?? 0)}
+                  </div>
+                  <CopyButton
+                    value={formatNumber(
+                      mainResult?.positionSize.standardLots ?? 0,
+                    )}
+                  />
                 </div>
               </div>
 
               <div className="grid gap-2">
                 <Label>Mini Lots</Label>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {formatNumber(mainResult?.positionSize.miniLots ?? 0)}
+                <div className="flex items-center gap-2">
+                  <div className="text-xl sm:text-2xl font-bold">
+                    {formatNumber(mainResult?.positionSize.miniLots ?? 0)}
+                  </div>
+                  <CopyButton
+                    value={formatNumber(mainResult?.positionSize.miniLots ?? 0)}
+                  />
                 </div>
               </div>
 
               <div className="grid gap-2">
                 <Label>Units</Label>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {formatNumber(mainResult?.positionSize.units ?? 0)}
+                <div className="flex items-center gap-2">
+                  <div className="text-xl sm:text-2xl font-bold">
+                    {formatNumber(mainResult?.positionSize.units ?? 0)}
+                  </div>
+                  <CopyButton
+                    value={formatNumber(mainResult?.positionSize.units ?? 0)}
+                  />
                 </div>
               </div>
             </div>
 
-            <Button
-              variant="link"
-              size="none"
-              className={cn("text-xs sm:text-sm")}
-            >
-              View more stop-loss levels
-            </Button>
+            <StopLossRange
+              highlight={Number(form.getValues().stopLoss)}
+              result={result}
+            />
           </div>
         </CardContent>
       </Card>
