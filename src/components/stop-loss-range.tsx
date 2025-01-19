@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -37,6 +38,9 @@ export function StopLossRange({ highlight, result }: StopLossRangeProps) {
       <DialogContent className="max-w-[95%] rounded sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Stop Loss Levels</DialogTitle>
+          <DialogDescription>
+            Each row correspond to a 0.02% change in stop loss.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Table>
@@ -51,9 +55,18 @@ export function StopLossRange({ highlight, result }: StopLossRangeProps) {
               {result.map((row) => (
                 <TableRow
                   key={row.stopLoss}
-                  className={row.stopLoss === highlight ? "bg-primary/10 hover:bg-primary/10" : ""}
+                  className={
+                    row.stopLoss === highlight
+                      ? "bg-primary/10 hover:bg-primary/10"
+                      : ""
+                  }
                 >
-                  <TableCell>{row.stopLoss}</TableCell>
+                  <TableCell>
+                    {new Intl.NumberFormat("en-US", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 6,
+                    }).format(row.stopLoss)}
+                  </TableCell>
                   <TableCell>
                     {row.positionSize.standardLots.toFixed(3)}
                   </TableCell>

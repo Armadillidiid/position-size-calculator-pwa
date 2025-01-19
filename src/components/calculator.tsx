@@ -129,7 +129,7 @@ export default function App({
       // Iterate through stop-loss range for calculations
       const stopLossRange = numberRange(
         Number(stopLoss),
-        Number(stopLoss) * 0.01,
+        Number(stopLoss) * 0.02,
         4,
       );
 
