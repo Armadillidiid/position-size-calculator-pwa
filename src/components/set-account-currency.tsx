@@ -12,7 +12,10 @@ import { useEffect, useState } from "react";
 import { AlertDialogHeader, AlertDialogFooter } from "./ui/alert-dialog";
 import { popularCurrencies } from "@/data/currencies";
 import { cn } from "@/lib/utils";
-import { ACCOUNT_CURRENCY_LOCAL_STORAGE_KEY } from "@/constants/local-storage";
+import {
+  ACCOUNT_CURRENCY_LOCAL_STORAGE_KEY,
+  FIRST_TIME_PAGE_VISIT_LOCAL_STORAGE_KEY,
+} from "@/constants/local-storage";
 
 type SetAccountCurrencyProps = {
   isOpen: boolean;
@@ -30,6 +33,16 @@ const SetAccountCurrency = ({ isOpen, setIsOpen }: SetAccountCurrencyProps) => {
   useEffect(() => {
     setSelected(accountCurrency);
   }, [accountCurrency]);
+
+  useEffect(() => {
+    const isFirstVisit = localStorage.getItem(
+      FIRST_TIME_PAGE_VISIT_LOCAL_STORAGE_KEY,
+    );
+    if (!isFirstVisit) {
+      setIsOpen(true);
+      localStorage.setItem(FIRST_TIME_PAGE_VISIT_LOCAL_STORAGE_KEY, "true");
+    }
+  }, [setIsOpen]);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
